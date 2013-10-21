@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="jsoneditor.css"/>
+	
+	<style>
+        body {
+          padding: 0 70px;
+        }
+        h1 {
+          font-family: Arial;
+          color: #EBBC6E;
+          text-align: center;
+          text-shadow: 1px 1px 1px black;
+          border-bottom: 1px solid gray;
+          padding-bottom: 50px;
+          width: 500px;
+          margin: 20px auto;
+        }
+        h1 img {
+          float: left;
+        }
+        h1 b {
+          color: black;
+          font-weight: normal;
+          display: block;
+          font-size: 12px;
+          text-shadow: none;
+        }
+
+        #legend {
+          display: inline;
+        }
+        #legend h2 {
+           display: inline;
+           font-size: 18px;
+           margin-right: 20px;
+        }
+        #legend a {
+          color: white;
+          margin-right: 20px;
+        }
+        #legend span {
+          padding: 2px 4px;
+          -webkit-border-radius: 5px;
+          -moz-border-radius: 5px;
+          border-radius: 5px;
+          color: white;
+          font-weight: bold;
+          text-shadow: 1px 1px 1px black;
+          background-color: black;
+        }
+        #legend .string  { background-color: #009408; }
+        #legend .array   { background-color: #2D5B89; }
+        #legend .object  { background-color: #E17000; }
+        #legend .number  { background-color: #497B8D; }
+        #legend .boolean { background-color: #B1C639; }
+        #legend .null    { background-color: #B1C639; }
+
+        #expander {
+          cursor: pointer;
+          margin-right: 20px;
+        }
+
+        #footer {
+          font-size: 0.8em;
+		  color: #666;
+		  border-top: 1px solid #aaa;
+		  padding-top: 2px;
+        }
+
+        label[for="json"] {
+          margin-left: 30px;
+          display: block;
+        }
+        #json-note {
+          margin-left: 30px;
+          font-size: 12px;
+        }
+		
+		#editorField {
+			float: left;
+		}
+		
+		#jsonInput {
+			float: right;
+			width: 400px;
+		}
+		#json {
+			width: 100%;
+			min-height: 400px;
+		}
+    </style>
+</head>
+
+<body>
+
+	<div id="content">
+		<div id="legend">
+			<h2>Legend: </h2>
+			<span class="array">array</span>
+			<span class="object">object</span>
+			<span class="string">string</span>
+			<span class="number">number</span>
+			<span class="boolean">boolean</span>
+			<span class="null">null</span>
+			<span>Remove item by deleting a property name.</span>
+		</div>
+		
+		<div style="clear: both; height: 10px;"></div>
+		
+		<fieldset id="editorField">
+			<legend>JSON-Editor</legend>
+			<div id="editor" class="json-editor"></div>
+		</fieldset>
+		
+		<script>
+			var json = {};
+
+			function refreshJson() {
+				json = JSON.parse($("#json").val() ? $("#json").val() : "[]");
+				$('#editor').jsonEditor(json, options);
+			}
+			
+			var options = {
+				change: function(json) {
+					$('#json').val(JSON.stringify(json, undefined, 2));
+				},
+				propertyElement: '<label>',
+				expandAll: true
+			};
+			
+			$('#editor').jsonEditor(json, options);
+		</script>
+
+		<fieldset id="jsonInput">
+		<label for="json">Paste JSON directly here:</label>
+    <p id="json-note">Note that you can edit your JSON directly in the textarea below.
+        The JSON viewer will get updated when you leave the field.</p>
+			<legend>JSON-String</legend>
+			<textarea id="json" onchange="refreshJson();">{
+  "string": "foo",
+  "number": 5,
+  "array": [
+    {
+      "val": 1
+    },{
+      "val": 25
+    }
+  ],
+  "object": {
+    "property": "value",
+    "subobj": {
+      "arr": [
+        {
+          "foo": "ha"
+        }
+      ],
+      "numero": 1
+    }
+  }
+}</textarea>
+		</fieldset>
+		
+		<div style="clear: both; height: 10px;"></div>
+		<p id="footer">Flexi JSON Editor - Copyright &copy; 2011-2012 David Durman - modified by Fabien Halbmann</p>
+	</div>
+
+    <script src="json2.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="jquery.jsoneditor.js"></script>
+	<script>refreshJson();</script>
+</body>
+</html>

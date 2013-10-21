@@ -18,6 +18,10 @@
 //     /* opt.valueElement = '<textarea>'; */  // element of the value field, <input> is default
 //     $('#mydiv').jsonEditor(myjson, opt);
 
+/**
+ * Modified 2013 by Fabian Halbmann
+ */
+
 (function( $ ) {
 
     $.fn.jsonEditor = function(json, options) {
@@ -26,21 +30,23 @@
         json = parse(stringify(json));
         
         var K = function() {},
-            onchange = options.change || K;
+            onchange = options.change || K,
+            expandAll = options.expandAll || false;
 
         return this.each(function() {
-            JSONEditor($(this), json, onchange, options.propertyElement, options.valueElement);
+            JSONEditor($(this), json, onchange, options.propertyElement, options.valueElement, expandAll);
         });
         
     };
     
-    function JSONEditor(target, json, onchange, propertyElement, valueElement) {
+    function JSONEditor(target, json, onchange, propertyElement, valueElement, expandAll) {
         var opt = {
             target: target,
             onchange: onchange,
             original: json,
             propertyElement: propertyElement,
-            valueElement: valueElement
+            valueElement: valueElement,
+            expandAll: expandAll
         };
         construct(opt, json, opt.target);
         $('.property, .value', opt.target).live('blur focus', function() {
@@ -95,8 +101,19 @@
     
     function parse(str) {
         var res;
-        try { res = JSON.parse(str); }
-        catch (e) { res = null; error('JSON parse failed.'); }
+        try {
+        	res = JSON.parse(str);
+        } catch (e) {
+        	res = null;
+        	// error('JSON parse failed.');
+        	// could not parse (for example a string without "") -> try again
+        	try {
+        		res = JSON.parse("\"" + str + "\"");
+        	} catch (e) {
+        		res = null;
+        		error('JSON parse failed.');
+        	}
+        }
         return res;
     }
 
@@ -118,6 +135,43 @@
         }
     }
     
+    function addNewChild(item) {
+    	if (item.children('.addchild').length == 0) {
+            var expander = $('<span>', { 'class': 'addchild' });
+            expander.bind('click', function() {
+                var parent = $(this).parent().find('.value').first();
+                var val = parent.attr('title');
+                var json = parse(val);
+                json.push(jQuery.extend(true, {}, json[0]));
+                val = stringify(json);
+                parent.val(val).attr('title', val);
+                parent.trigger('change');
+            });
+            item.append(expander);
+        }
+    }
+    
+    function addRemoveChild(item) {
+    	if (item.children('.removechild').length == 0) {
+            var expander = $('<span>', { 'class': 'removechild' });
+            expander.bind('click', function() {
+                var index = $(this).parent().find('.property').first().attr('title');
+                
+                var parent = $(this).parent().parent().find('.value').first();
+                var val = parent.attr('title');
+                var json = parse(val);
+                if (json.length > 1) {
+                	json.splice(index, 1);
+                }
+                
+                val = stringify(json);
+                parent.val(val).attr('title', val);
+                parent.trigger('change');
+            });
+            item.append(expander);
+        }
+    }
+    
     function construct(opt, json, root, path) {
         path = path || '';
         
@@ -134,14 +188,25 @@
                 addExpander(item);
             }
             
+	        if (isArray(json[key])) {
+	        	addNewChild(item);
+	        }
+	        
+	        if (getType(root) == '[object Array]') {
+	        	addRemoveChild(item);
+	        }
+            
             item.append(property).append(value);
             root.append(item);
             
+            if (opt.propertyElement === '<label>') {
+            	property.html(key);
+            }
             property.val(key).attr('title', key);
             var val = stringify(json[key]);
             value.val(val).attr('title', val);
 
-            assignType(item, json[key]);
+            assignType(item, json[key], opt);
 
             property.change(propertyChanged(opt));
             value.change(valueChanged(opt));
@@ -183,11 +248,11 @@
 
     function valueChanged(opt) {
         return function() {
-            var key = $(this).prev().val(),
+        	var key = $(this).prev().val(),
                 val = parse($(this).val() || 'null'),
                 item = $(this).parent(),
                 path = item.data('path');
-
+            
             feed(opt.original, (path ? path + '.' : '') + key, val);
             if ((isObject(val) || isArray(val)) && !$.isEmptyObject(val)) {
                 construct(opt, val, item, (path ? path + '.' : '') + key);
@@ -196,15 +261,15 @@
                 item.find('.expander, .item').remove();
             }
 
-            assignType(item, val);
+            assignType(item, val, opt);
 
             updateParents(this, opt);
             
-            opt.onchange();
+            opt.onchange(opt.original);
         };
     }
     
-    function assignType(item, val) {
+    function assignType(item, val, opt) {
         var className = 'null';
         
         if (isObject(val)) className = 'object';
@@ -215,6 +280,19 @@
 
         item.removeClass(types);
         item.addClass(className);
+        
+        if (opt.expandAll && (isObject(val) || isArray(val))) {
+        	item.addClass('expanded');
+        }
+    }
+    
+    function getType(item) {
+    	if (item.hasClass('object')) return '[object Object]';
+    	else if (item.hasClass('array')) return '[object Array]';
+    	else if (item.hasClass('boolean')) return '[object Boolean]';
+    	else if (item.hasClass('string')) return '[object String]';
+    	else if (item.hasClass('number')) return '[object Number]';
+    	else return 'null';
     }
 
 })( jQuery );
